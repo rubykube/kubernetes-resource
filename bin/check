@@ -1,0 +1,27 @@
+#!/bin/bash
+set -e
+set -o pipefail
+exec 3>&1 # use fd 3 for script output
+exec 1>&2 # send normal stdout to stderr for logging
+
+payload="$(mktemp "$TMPDIR/k8s-resource-request.XXXXXX")"
+cat > "$payload" <&0
+
+cd "$1"
+
+mkdir -p /root/.kube
+
+TOKEN=$(jq -r .source.token < "$payload")
+echo "$TOKEN" > /token
+
+NAMESPACE=$(jq -r .source.namespace < "$payload")
+KUBECTL="kubectl -n $NAMESPACE"
+
+KUBE_CONFIG=$(jq -r .source.kubeconfig < "$payload")
+KUBE_CONFIG_PATH="/root/.kube/config"
+
+echo -n "$KUBE_CONFIG" | base64 -d > $KUBE_CONFIG_PATH
+
+result=""
+
+echo "$result" | jq -s add  >&3
